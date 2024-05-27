@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QCARConfig>
+  <Tracking>
+    <ImageTarget name="conan2image" size="731.000000 410.100525" />
+    <ImageTarget name="conanimage" size="480.000000 480.000000" />
+  </Tracking>
+</QCARConfig>
