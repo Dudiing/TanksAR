@@ -27,19 +27,8 @@ public class StickController : MonoBehaviour
 {
     #region Properties
 
-    /// <summary>
-    /// Static or dynamic joystick
-    /// </summary>
     public EnStickType StickType;
-
-    /// <summary>
-    /// Allow joystick to move in x-direction
-    /// </summary>
     public bool AllowX = true;
-
-    /// <summary>
-    /// Allow joystick to move in y-direction
-    /// </summary>
     public bool AllowY = true;
 
     #endregion
@@ -47,9 +36,7 @@ public class StickController : MonoBehaviour
     #region Protected members
 
     protected RectTransform _button;
-
     protected RectTransform _buttonFrame;
-
     protected float _dragRadius = 0.0f;
 
     #endregion
@@ -57,24 +44,20 @@ public class StickController : MonoBehaviour
     #region Private members
 
     private int _buttonId = -1;
-
     private Vector3 _startPos = Vector3.zero;
 
     #endregion
 
     public event EventHandler<StickEventArgs> StickChanged;
 
-
-    // Use this for initialization
-	protected virtual void Start () {
-
+    protected virtual void Start()
+    {
         _button = this.transform.Find("_stick").GetComponent<RectTransform>();
         _buttonFrame = this.transform.Find("_stickFrame").GetComponent<RectTransform>();
         _dragRadius = _buttonFrame.rect.width / 2.0f;
 
         HideDynamic();
-	
-	}
+    }
 
     private void HideDynamic()
     {
@@ -89,9 +72,8 @@ public class StickController : MonoBehaviour
     {
         HandleTouchInput();
 
-    #if UNITY_EDITOR || UNITY_STANDALONE_OSX || UNITY_STANDALONE_WIN || UNITY_WEBPLAYER
+        #if UNITY_EDITOR || UNITY_STANDALONE_OSX || UNITY_STANDALONE_WIN || UNITY_WEBPLAYER
 
-        // Simulate the Stick in Editor or Standalone
         if (Input.GetMouseButtonDown(0))
         {
             if (CheckButtonDown(Input.mousePosition))
@@ -106,17 +88,14 @@ public class StickController : MonoBehaviour
             ButtonUp();
         }
 
-    #endif
-
+        #endif
     }
-	
-	// Update is called once per frame
-	protected virtual void FixedUpdate () {
 
-#if UNITY_EDITOR || UNITY_STANDALONE_OSX || UNITY_STANDALONE_WIN || UNITY_WEBPLAYER
+    protected virtual void FixedUpdate()
+    {
+        #if UNITY_EDITOR || UNITY_STANDALONE_OSX || UNITY_STANDALONE_WIN || UNITY_WEBPLAYER
         HandleInput(Input.mousePosition);
-#endif
-
+        #endif
     }
 
     private void ShowDynamic()
@@ -138,44 +117,36 @@ public class StickController : MonoBehaviour
 
             Rect rect = new Rect(this.transform.position.x - xMid, this.transform.position.y - yMid, _buttonFrame.sizeDelta.x, _buttonFrame.sizeDelta.y);
 
-            if (rect.Contains(input))
-            {
-                return true;
-            }
+            return rect.Contains(input);
         }
         else
         {
             return true;
         }
-
-        return false;
     }
 
     private void ButtonUp()
     {
         _buttonId = -1;
-
         HideDynamic();
-
     }
-
 
     #region User Input
 
     void HandleTouchInput()
     {
-        // We have touch-input (mobile)
         if (Input.touchCount > 0)
         {
             foreach (Touch touch in Input.touches)
             {
-                Vector3 touchPos = new Vector3(touch.position.x, touch.position.y);
+                Vector3 touchPos = new Vector3(touch.position.x, touch.position.y, 0);
 
                 if (touch.phase == TouchPhase.Began)
                 {
                     if (CheckButtonDown(touch.position))
                     {
                         _buttonId = touch.fingerId;
+                        ShowDynamic();
                     }
                 }
 
@@ -184,16 +155,16 @@ public class StickController : MonoBehaviour
                     if (_buttonId == touch.fingerId)
                     {
                         HandleInput(touchPos);
-                    }                 
+                    }
                 }
 
-                if (touch.phase == TouchPhase.Ended)
+                if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
                 {
                     if (_buttonId == touch.fingerId)
                     {
                         _buttonId = -1;
-                        HandleInput(touchPos);
-                    }            
+                        ButtonUp();
+                    }
                 }
             }
         }
@@ -205,28 +176,26 @@ public class StickController : MonoBehaviour
 
         if (_buttonId != -1 && (AllowX || AllowY))
         {
-            differenceVector = (input - _buttonFrame.position);
+            RectTransformUtility.ScreenPointToWorldPointInRectangle(_buttonFrame, input, null, out var worldInput);
 
-            if (differenceVector.sqrMagnitude >
-                _dragRadius * _dragRadius)
+            differenceVector = (worldInput - _buttonFrame.position);
+
+            if (differenceVector.sqrMagnitude > _dragRadius * _dragRadius)
             {
                 differenceVector.Normalize();
-
-                _button.position = _buttonFrame.position +
-                    differenceVector * _dragRadius;
-
+                _button.position = _buttonFrame.position + differenceVector * _dragRadius;
             }
             else
             {
-                _button.position = input;
+                _button.position = worldInput;
             }
 
-            if (AllowY == false)
+            if (!AllowY)
             {
                 _button.position = new Vector3(_button.position.x, _buttonFrame.position.y, 0);
             }
 
-            if (AllowX == false)
+            if (!AllowX)
             {
                 _button.position = new Vector3(_buttonFrame.position.x, _button.position.y, 0);
             }
@@ -237,17 +206,10 @@ public class StickController : MonoBehaviour
         }
 
         Vector3 diff = _button.position - _buttonFrame.position;
+        float distance = Vector3.Distance(_button.position, _buttonFrame.position) / _dragRadius;
+        Vector2 normDiff = (distance < 0.00001f) ? Vector2.zero : new Vector2(diff.x / _dragRadius, diff.y / _dragRadius);
 
-        float distance = Vector3.Distance(_button.position, _buttonFrame.position);
-
-        distance /= (_buttonFrame.sizeDelta.x / 2.0f);
-
-        Vector2 normDiff = (distance < 0.00001) ? Vector2.zero : new Vector2(diff.x / _dragRadius, diff.y / _dragRadius);
-
-        if (StickChanged != null)
-        {
-            StickChanged(this, new StickEventArgs(normDiff));
-        }
+        StickChanged?.Invoke(this, new StickEventArgs(normDiff));
     }
 
     #endregion

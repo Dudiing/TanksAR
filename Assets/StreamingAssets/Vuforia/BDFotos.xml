@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <QCARConfig>
   <Tracking>
-    <ImageTarget name="conan2image" size="731.000000 410.100525" />
-    <ImageTarget name="conanimage" size="480.000000 480.000000" />
+    <ImageTarget name="kaitoimage" size="200.000000 112.359550" />
+    <ImageTarget name="conanimage" size="731.000000 410.100525" />
   </Tracking>
 </QCARConfig>
