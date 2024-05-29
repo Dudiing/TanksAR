@@ -10,6 +10,8 @@ public class TankHealth : MonoBehaviour
     public delegate void TankDestroyedAction(GameObject tank);
     public event TankDestroyedAction OnTankDestroyed;
 
+    private bool SeguirJugando = false;
+
     void Start()
     {
         currentHealth = maxHealth;
@@ -18,29 +20,39 @@ public class TankHealth : MonoBehaviour
 
     public void TakeDamage(float amount)
     {
-        currentHealth -= amount;
-        currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
-        UpdateHealthUI();
-
-        if (currentHealth <= 0f)
+        if (!SeguirJugando)
         {
-            Die();
+            currentHealth -= amount;
+            currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+            UpdateHealthUI();
+
+            if (currentHealth <= 0f)
+            {
+                Die();
+            }
         }
     }
 
     void UpdateHealthUI()
     {
-        if (healthCircle != null)
+        if (!SeguirJugando)
         {
-            healthCircle.fillAmount = currentHealth / maxHealth;
+            if (healthCircle != null)
+            {
+                healthCircle.fillAmount = currentHealth / maxHealth;
+            }
         }
     }
 
     void Die()
     {
-        // Lógica para cuando el tanque muere (desactivar el tanque, mostrar explosión, etc.)
-        Debug.Log(gameObject.name + " has been destroyed!");
-        OnTankDestroyed?.Invoke(gameObject);
-        gameObject.SetActive(false);
+        if (!SeguirJugando)
+        {
+            SeguirJugando = true;
+            // Lógica para cuando el tanque muere (desactivar el tanque, mostrar explosión, etc.)
+            Debug.Log(gameObject.name + " has been destroyed!");
+            OnTankDestroyed?.Invoke(gameObject);
+            gameObject.SetActive(false);
+        }
     }
 }

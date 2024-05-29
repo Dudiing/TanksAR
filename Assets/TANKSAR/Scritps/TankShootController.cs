@@ -11,12 +11,14 @@ public class TankShootController : MonoBehaviour, IPointerDownHandler, IPointerU
     public Transform tankCanon;
     public float maxBulletForce = 500f;
     public AudioClip shootSound; // Asigna el clip de audio desde el Inspector
-    private float holdTime = 0f;
+    private float holdTime = 250f;
     private bool isHolding = false;
     private AudioSource audioSource;
 
     public delegate void ShootAction();
     public event ShootAction OnShoot;
+
+    private bool SeguirJugando = false;
 
     void Start()
     {
@@ -34,47 +36,59 @@ public class TankShootController : MonoBehaviour, IPointerDownHandler, IPointerU
 
     void Update()
     {
-        if (isHolding)
+        if (!SeguirJugando)
         {
-            holdTime += Time.deltaTime;
+            if (isHolding)
+            {
+                holdTime += Time.deltaTime;
+            }
         }
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        if (!enabled) return; // Asegúrate de que el script esté habilitado
-        Debug.Log(gameObject.name + " OnPointerDown");
-        isHolding = true;
-        holdTime = 0f;
+        if (!SeguirJugando)
+        {
+            if (!enabled) return; // Asegúrate de que el script esté habilitado
+            //Debug.Log(gameObject.name + " OnPointerDown");
+            isHolding = true;
+            holdTime = 250f;
+        }
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        if (!enabled) return; // Asegúrate de que el script esté habilitado
-        Debug.Log(gameObject.name + " OnPointerUp");
-        isHolding = false;
-        float bulletForce = Mathf.Clamp(holdTime, 0, maxBulletForce);
-        ShootBullet(bulletForce);
-        OnShoot?.Invoke();
+        if (!SeguirJugando)
+        {
+            if (!enabled) return; // Asegúrate de que el script esté habilitado
+            //Debug.Log(gameObject.name + " OnPointerUp");
+            isHolding = false;
+            float bulletForce = Mathf.Clamp(holdTime, 0, maxBulletForce);
+            ShootBullet(bulletForce);
+            OnShoot?.Invoke();
+        }
     }
 
     private void ShootBullet(float force)
     {
-        Debug.Log(gameObject.name + " Shooting with force: " + force);
-        GameObject bullet = Instantiate(bulletPrefab, canonEnd.position, canonEnd.rotation);
-        Vector3 shootDirection = tankCanon.forward;
-        Rigidbody rb = bullet.GetComponent<Rigidbody>();
-        if (rb != null)
+        if (!SeguirJugando)
         {
-            rb.AddForce(shootDirection * force, ForceMode.Impulse);
-        }
+            Debug.Log(gameObject.name + " Shooting with force: " + force);
+            GameObject bullet = Instantiate(bulletPrefab, canonEnd.position, canonEnd.rotation);
+            Vector3 shootDirection = tankCanon.forward;
+            Rigidbody rb = bullet.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.AddForce(shootDirection * force, ForceMode.Impulse);
+            }
 
-        // Reproducir el sonido de disparo
-        if (audioSource != null && shootSound != null)
-        {
-            audioSource.PlayOneShot(shootSound);
-        }
+            // Reproducir el sonido de disparo
+            if (audioSource != null && shootSound != null)
+            {
+                audioSource.PlayOneShot(shootSound);
+            }
 
-        Destroy(bullet, 5f);
+            Destroy(bullet, 5f);
+        }
     }
 }

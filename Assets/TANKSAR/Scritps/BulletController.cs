@@ -24,13 +24,15 @@ public class BulletController : MonoBehaviour
             audioSource.PlayOneShot(collisionSound);
         }
 
-        // Crear el OverlapSphere
+        // Crear el OverlapSphere para buscar otros objetos en el radio de la explosión
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, explosionRadius);
         foreach (Collider hitCollider in hitColliders)
         {
-            TankHealth tankHealth = hitCollider.GetComponent<TankHealth>();
+            //Debug.Log("Impactado con: " + hitCollider.gameObject.name);
+            TankHealth tankHealth = collision.gameObject.GetComponent<TankHealth>();
             if (tankHealth != null)
             {
+                //Debug.Log("Impactado 2 con: " + hitCollider.gameObject.name);
                 // Calcular el daño basado en la distancia al punto de impacto
                 float distance = Vector3.Distance(transform.position, hitCollider.transform.position);
                 float damageAmount = damage * (1 - (distance / explosionRadius));

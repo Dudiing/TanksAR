@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,11 +10,18 @@ public class GameManager : MonoBehaviour
     public TankShootController tank2ShootController;
     public TankHealth tank1Health;
     public TankHealth tank2Health;
-    public TextMeshProUGUI turnText; // Asigna el TextMeshPro desde el Inspector
-    public AudioClip victoryMusic; // Asigna el clip de música de victoria desde el Inspector
+    public TextMeshProUGUI turnText;
+    public AudioClip victoryMusic;
+    public Button turnButton;
+    public Canvas gameCanvas;
+    public Canvas victoryCanvas; // Canvas de victoria
+    public TextMeshProUGUI victoryText; // Texto de victoria
     private AudioSource audioSource;
 
     private bool isTank1Turn = true;
+    private bool holdingButton = false;
+
+    private bool SeguirJugando = false;
 
     void Start()
     {
@@ -23,57 +31,67 @@ public class GameManager : MonoBehaviour
         tank2Health.OnTankDestroyed += HandleTankDestroyed;
 
         StartTurn();
+        if (turnButton != null)
+        {
+            turnButton.onClick.AddListener(ChangeTurnOnClick);
+        }
+
+        // Asegúrate de que el Canvas de victoria esté desactivado al inicio
+        if (victoryCanvas != null)
+        {
+            victoryCanvas.gameObject.SetActive(false);
+        }
+    }
+
+    void Update()
+    {
+        if (!SeguirJugando)
+        {
+            if (holdingButton && Input.GetMouseButtonUp(0))
+            {
+                holdingButton = false;
+                EndTurn();
+            }
+        }
     }
 
     private void StartTurn()
     {
-        if (turnText != null)
+        if (!SeguirJugando)
         {
-            turnText.gameObject.SetActive(true);
-        }
+            if (turnText != null)
+            {
+                turnText.gameObject.SetActive(true);
+                turnText.text = isTank1Turn ? "Turno de Tanque 1" : "Turno de Tanque 2";
+            }
 
-        UpdateTurnText();
-        Debug.Log("StartTurn: " + (isTank1Turn ? "Tank 1's turn" : "Tank 2's turn"));
-        if (isTank1Turn)
-        {
-            EnableTank(tank1Controller, tank1ShootController);
-            DisableTank(tank2Controller, tank2ShootController);
-        }
-        else
-        {
-            EnableTank(tank2Controller, tank2ShootController);
-            DisableTank(tank1Controller, tank1ShootController);
+            EnableTank(isTank1Turn ? tank1Controller : tank2Controller, isTank1Turn ? tank1ShootController : tank2ShootController);
+            DisableTank(isTank1Turn ? tank2Controller : tank1Controller, isTank1Turn ? tank2ShootController : tank1ShootController);
         }
     }
 
     private void EnableTank(PlayerController controller, TankShootController shootController)
     {
-        Debug.Log("Enabling: " + controller.gameObject.name);
         controller.enabled = true;
         shootController.enabled = true;
-        shootController.OnShoot += EndTurn;
+        shootController.OnShoot += OnShoot;
     }
 
     private void DisableTank(PlayerController controller, TankShootController shootController)
     {
-        Debug.Log("Disabling: " + controller.gameObject.name);
         controller.enabled = false;
         shootController.enabled = false;
-        shootController.OnShoot -= EndTurn;
+        shootController.OnShoot -= OnShoot;
     }
 
     private void EndTurn()
     {
-        Debug.Log("EndTurn: " + (isTank1Turn ? "Tank 1's turn ended" : "Tank 2's turn ended"));
-
         if (isTank1Turn)
         {
-            Debug.Log("Disabling Tank 1 ShootController");
             DisableTank(tank1Controller, tank1ShootController);
         }
         else
         {
-            Debug.Log("Disabling Tank 2 ShootController");
             DisableTank(tank2Controller, tank2ShootController);
         }
 
@@ -81,33 +99,42 @@ public class GameManager : MonoBehaviour
         StartTurn();
     }
 
-    private void UpdateTurnText()
+    private void OnShoot()
     {
-        if (turnText != null)
-        {
-            turnText.text = isTank1Turn ? "Turno de Tanque 1" : "Turno de Tanque 2";
-        }
+        holdingButton = true;
     }
 
     private void HandleTankDestroyed(GameObject destroyedTank)
     {
-        if (turnText != null)
-        {
-            string winner = destroyedTank == tank1Controller.gameObject ? "Tanque 2" : "Tanque 1";
-            turnText.text = winner + " ha ganado!";
-        }
+        SeguirJugando = true;
+        string winner = destroyedTank == tank1Controller.gameObject ? "Tanque 2" : "Tanque 1";
+        turnText.text = winner + " ha ganado!";
+
+        gameCanvas.gameObject.SetActive(false);
+        DisableTank(tank1Controller, tank1ShootController);
+        DisableTank(tank2Controller, tank2ShootController);
 
         if (audioSource != null && victoryMusic != null)
         {
             audioSource.PlayOneShot(victoryMusic);
         }
 
-        Invoke("RestartGame", 10f);
+        // Mostrar el Canvas de victoria y actualizar el texto
+        if (victoryCanvas != null && victoryText != null)
+        {
+            victoryCanvas.gameObject.SetActive(true);
+            victoryText.text = winner + " Winner!";
+        }
     }
 
-    private void RestartGame()
+    public void ChangeTurnOnClick()
     {
-        // Reiniciar la escena actual
-        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        if (!SeguirJugando)
+        {
+            if (!holdingButton)
+            {
+                EndTurn();
+            }
+        }
     }
 }
